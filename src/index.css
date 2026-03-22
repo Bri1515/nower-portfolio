@@ -34,6 +34,50 @@
   }
 }
 
+@layer base {
+  /* ==========================================
+     CUSTOM SCROLLBAR
+     ========================================== */
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f8fafc;
+    /* slate-50 */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    /* slate-300 */
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+    /* slate-400 */
+  }
+
+  /* ==========================================
+     DARK MODE SCROLLBAR
+     ========================================== */
+
+  .dark ::-webkit-scrollbar-track {
+    background: #10221C;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #1e333b;
+    border-radius: 10px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #10b981;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #9ca3af;

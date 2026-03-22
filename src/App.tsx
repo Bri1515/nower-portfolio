@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import DashboardLayout from './components/layouts/DashboardLayout';
 import { BasicProfile } from './features/profile/BasicProfile';
 import { ProjectsList } from './features/projects/ProjectsList';
+import { SkillsList } from './features/skills/SkillsList';
 import { User, FolderGit2, Code, Briefcase } from 'lucide-react';
 import type { NavItem } from './components/navigation/Sidebar';
 
@@ -25,6 +26,8 @@ const App: React.FC = () => {
                 return <BasicProfile />;
             case 'Proyectos':
                 return <ProjectsList />;
+            case 'Habilidades':
+                return <SkillsList />;
             default:
                 return (
                     <div className="flex flex-col items-center justify-center p-12 text-center h-full">
