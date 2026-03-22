@@ -12,7 +12,7 @@ import { Button } from '../ui/Button';
 export interface DashboardLayoutProps {
     children: React.ReactNode;
     activeTab: string;
-    setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+    setActiveTab: (name: string) => void;
     navItems: NavItem[];
 }
 

@@ -12,6 +12,7 @@ export interface NavItem {
     name: string;
     icon: LucideIcon;
     badge?: string;
+    path?: string;
 }
 
 export interface SidebarProps {
@@ -21,19 +22,22 @@ export interface SidebarProps {
     toggleTheme: () => void;
     navItems: NavItem[];
     activeTab: string;
-    setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+    setActiveTab: (name: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isDark, toggleTheme, navItems, activeTab, setActiveTab }) => {
     return (
         <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform flex-col bg-white dark:bg-[#17262C] border-r border-slate-200 dark:border-slate-800/60 transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex`}>
             <div className="flex h-20 items-center gap-3 px-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white font-bold text-xl shadow-lg shadow-emerald-500/20">
-                    N
-                </div>
-                <div>
-                    <h1 className="text-xl font-extrabold tracking-tight text-black dark:text-white">NOWER</h1>
-                    <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tracking-widest uppercase">Workspaces</p>
+                <img src="/nowerLogo.png" alt="NOWER Logo" className="h-[2.75rem] w-auto object-contain" />
+                <div className="flex flex-col justify-center">
+                    <h1 className="text-2xl font-black tracking-tight text-[#0f224a] dark:text-white leading-none">
+                        NOWER
+                    </h1>
+                    {/* Changed mt-0.5 to -mt-1 to pull the text up tightly against the H1 */}
+                    <p className="-mt-6 text-[9px] sm:text-[10px] md:block hidden font-semibold text-slate-500 tracking-widest uppercase">
+                        Efficient Web Performance
+                    </p>
                 </div>
                 <button className="ml-auto lg:hidden" onClick={onClose}>
                     <X className="h-6 w-6 text-slate-500" />
