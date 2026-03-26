@@ -8,6 +8,7 @@ import { User, FolderGit2, Code, Briefcase } from 'lucide-react';
 import type { NavItem } from './components/navigation/Sidebar';
 import { LoginPage } from './components/pages/LoginPage';
 import { ExperienceList } from './features/experience/ExperienceList';
+import { RegisterPage } from './components/pages/RegisterPage';
 
 // ==========================================
 // APP
@@ -40,6 +41,7 @@ const AppContent: React.FC<{ isLoggedIn: boolean, onLogin: () => void }> = ({ is
             <Routes>
                 <Route path="/login" element={<LoginPage onLogin={onLogin} />} />
                 <Route path="*" element={<Navigate to="/login" replace />} />
+                <Route path="/register" element={<RegisterPage />} />
             </Routes>
         );
     }
