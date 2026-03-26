@@ -27,6 +27,11 @@ function requireAuth(): array
 {
     $token = bearerToken();
     if ($token === null) {
+        // Token almacenado como cookie (por frontend vía localhost/Vite proxy)
+        $token = $_COOKIE['nower_token'] ?? null;
+    }
+
+    if (!is_string($token) || $token === '') {
         jsonResponse(['error' => 'Unauthorized'], 401);
         exit;
     }
@@ -70,6 +75,20 @@ if ($method === 'POST' && $path === '/api/auth/login') {
         'exp' => time() + $ttl,
     ]);
 
+    // Guardar el token también en cookie para que el frontend no use sessionStorage.
+    // Nota: en desarrollo (localhost) no usamos Secure para evitar bloqueos por navegador.
+    setcookie(
+        'nower_token',
+        $token,
+        [
+            'expires' => time() + $ttl,
+            'path' => '/api',
+            'httponly' => true,
+            'samesite' => 'Lax',
+            'secure' => false,
+        ]
+    );
+
     jsonResponse([
         'token' => $token,
         'user' => [
@@ -78,6 +97,17 @@ if ($method === 'POST' && $path === '/api/auth/login') {
             'role' => $user['role'],
             'profileId' => $user['profileId'],
         ],
+    ]);
+    exit;
+}
+
+// Auth status (para que el frontend detecte sesión desde cookie)
+if ($method === 'GET' && $path === '/api/auth/me') {
+    $payload = requireAuth();
+    jsonResponse([
+        'authenticated' => true,
+        'pid' => $payload['pid'],
+        'role' => $payload['role'] ?? null,
     ]);
     exit;
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from './components/layouts/DashboardLayout';
 import { BasicProfile } from './features/profile/BasicProfile';
@@ -68,9 +68,20 @@ const AppContent: React.FC<{ isLoggedIn: boolean, onLogin: () => void }> = ({ is
 };
 
 const App: React.FC = () => {
-    // Basic auth state. Defaulting to false. 
-    // In a real app, you might initialize this from localStorage.
+    // Auth state detectada por cookie (token en Backend con setcookie).
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        fetch('/api/auth/me', { method: 'GET', credentials: 'include' })
+            .then(async (res) => {
+                if (!res.ok) {
+                    setIsLoggedIn(false);
+                    return;
+                }
+                setIsLoggedIn(true);
+            })
+            .catch(() => setIsLoggedIn(false));
+    }, []);
 
     return (
         <BrowserRouter>

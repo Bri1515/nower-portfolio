@@ -11,13 +11,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (email === 'admin@gmail.com' && password === '123') {
-            if (onLogin) onLogin();
-        } else {
-            setError('Credenciales inválidas. Intente de nuevo.');
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+                credentials: 'include',
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok || !data?.token) {
+                setError(data?.error ?? 'Credenciales inválidas. Intente de nuevo.');
+                return;
+            }
+
+            onLogin?.();
+        } catch {
+            setError('Error conectando con el servidor.');
         }
     };
 
