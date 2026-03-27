@@ -93,11 +93,70 @@ if ($method === 'POST' && $path === '/api/auth/login') {
         'token' => $token,
         'user' => [
             'id' => $user['userId'],
+            'name' => $user['name'] ?? null,
             'email' => $user['email'],
             'role' => $user['role'],
             'profileId' => $user['profileId'],
         ],
     ]);
+    exit;
+}
+
+if ($method === 'POST' && $path === '/api/auth/register') {
+    $body = readJsonBody();
+    $name = (string)($body['name'] ?? '');
+    $email = (string)($body['email'] ?? '');
+    $password = (string)($body['password'] ?? '');
+
+    if (trim($name) === '' || trim($email) === '' || $password === '') {
+        jsonResponse(['error' => 'Missing name, email or password'], 400);
+        exit;
+    }
+
+    try {
+        $user = $repo->register($name, $email, $password);
+    } catch (\RuntimeException $e) {
+        if ($e->getMessage() === 'EMAIL_TAKEN') {
+            jsonResponse(['error' => 'Email already registered'], 409);
+            exit;
+        }
+        jsonResponse(['error' => 'Register failed'], 500);
+        exit;
+    } catch (\Throwable $e) {
+        jsonResponse(['error' => 'Register failed'], 500);
+        exit;
+    }
+
+    $ttl = tokenTtlSeconds();
+    $token = createToken([
+        'sub' => $user['userId'],
+        'pid' => $user['profileId'],
+        'role' => $user['role'],
+        'exp' => time() + $ttl,
+    ]);
+
+    setcookie(
+        'nower_token',
+        $token,
+        [
+            'expires' => time() + $ttl,
+            'path' => '/api',
+            'httponly' => true,
+            'samesite' => 'Lax',
+            'secure' => false,
+        ]
+    );
+
+    jsonResponse([
+        'token' => $token,
+        'user' => [
+            'id' => $user['userId'],
+            'name' => $user['name'] ?? null,
+            'email' => $user['email'],
+            'role' => $user['role'],
+            'profileId' => $user['profileId'],
+        ],
+    ], 201);
     exit;
 }
 
