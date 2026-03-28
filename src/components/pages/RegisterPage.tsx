@@ -18,36 +18,36 @@ export const RegisterPage: React.FC<{ onLogin: () => void }> = ({
   const isPasswordValid = form.password.length >= 6;
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  setForm({
-    ...form,
-    [name]: value,
-  });
+    setForm({
+      ...form,
+      [name]: value,
+    });
 
-  if (name === "email") {
-    const isValid = /\S+@\S+\.\S+/.test(value);
+    if (name === "email") {
+      const isValid = /\S+@\S+\.\S+/.test(value);
 
-    if (!isValid) {
-      setEmailError("Correo inválido");
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/auth/check-email?email=${value}`);
-
-      const data = await res.json();
-
-      if (data.exists) {
-        setEmailError("Este correo ya está registrado");
-      } else {
-        setEmailError("");
+      if (!isValid) {
+        setEmailError("Correo inválido");
+        return;
       }
-    } catch {
-      setEmailError("Error verificando el correo");
+
+      try {
+        const res = await fetch(`/api/auth/check-email?email=${value}`);
+
+        const data = await res.json();
+
+        if (data.exists) {
+          setEmailError("Este correo ya está registrado");
+        } else {
+          setEmailError("");
+        }
+      } catch {
+        setEmailError("Error verificando el correo");
+      }
     }
-  }
-};
+  };
 
   const passwordsMatch =
     form.password !== "" &&
@@ -56,7 +56,10 @@ export const RegisterPage: React.FC<{ onLogin: () => void }> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!isPasswordValid) return;
+    if (!passwordsMatch) return;
+    if (emailError) return;
+    
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -78,7 +81,6 @@ export const RegisterPage: React.FC<{ onLogin: () => void }> = ({
 
         return;
       }
-      if (!isPasswordValid) return;
 
       const loginRes = await fetch("/api/auth/login", {
         method: "POST",
