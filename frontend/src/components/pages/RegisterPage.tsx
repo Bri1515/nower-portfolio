@@ -59,13 +59,13 @@ export const RegisterPage: React.FC<{ onLogin: () => void }> = ({
     if (!isPasswordValid) return;
     if (!passwordsMatch) return;
     if (emailError) return;
-    
+
     try {
       const res = await fetch("http://127.0.0.1:8000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.fullName,   
+          name: form.fullName,
           email: form.email,
           password: form.password
         }),
