@@ -1,8 +1,9 @@
 // src/components/pages/LoginPage.tsx
 import React, { useState } from "react";
 import { Eye, EyeOff, Lock, Layers, ShieldCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSignIn } from "@clerk/clerk-react";
+const ALLOWED_DOMAIN = "@est.umss.edu";
 
 export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,6 +12,22 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState("");
   const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle errors from redirect (URL params)
+  React.useEffect(() => {
+    const errorParam = searchParams.get("error") || searchParams.get("clerk_error");
+    if (errorParam) {
+      if (errorParam === "access_denied" || errorParam.includes("not_allowed")) {
+        setError("Acceso denegado: Solo se permiten cuentas institucionales @est.umss.edu");
+      } else {
+        setError("Error en el inicio de sesión. Por favor, intenta de nuevo.");
+      }
+      // Clear the error param from the URL for a cleaner experience
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [searchParams]);
 
   // Initialize Clerk's signIn object
   const { signIn, isLoaded } = useSignIn();
@@ -22,6 +39,10 @@ export const LoginPage: React.FC = () => {
     setError("");
 
     try {
+      if (!email.toLowerCase().endsWith(ALLOWED_DOMAIN)) {
+        setError("Solo se permiten correos institucionales con el dominio @est.umss.edu");
+        return;
+      }
       const result = await signIn.create({
         identifier: email,
         password,
@@ -34,7 +55,17 @@ export const LoginPage: React.FC = () => {
         setError("Se requiere un paso adicional para iniciar sesión.");
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Credenciales inválidas. Intente de nuevo.");
+      // Check for Clerk's domain related error or any other authentication error
+      const firstError = err.errors?.[0];
+      const errorMessage = firstError?.message || "";
+
+      if (firstError?.code === "form_identifier_not_allowed" || errorMessage.includes("domain")) {
+        setError("Este dominio no está permitido. Usa tu cuenta @est.umss.edu");
+      } else if (errorMessage.toLowerCase().includes("strategy")) {
+        setError("Tu cuenta está vinculada a Google. Por favor, usa el botón de 'Google' para entrar.");
+      } else {
+        setError(firstError?.message || "Credenciales inválidas. Intente de nuevo.");
+      }
     }
   };
 
@@ -172,6 +203,9 @@ export const LoginPage: React.FC = () => {
                   className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#111827] px-4 py-3.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
                   required
                 />
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 px-1 italic">
+                  * Debes usar tu correo universitario (@est.umss.edu)
+                </p>
               </div>
 
               {/* Password Input */}
