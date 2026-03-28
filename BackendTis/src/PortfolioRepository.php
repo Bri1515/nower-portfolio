@@ -25,7 +25,7 @@ final class PortfolioRepository
     public function login(string $email, string $password): ?array
     {
         $stmt = db()->prepare(
-            'SELECT id::text AS id, profile_id::text AS profile_id, email, role, password_hash
+            'SELECT id::text AS id, profile_id::text AS profile_id, name, email, role, password_hash
              FROM users
              WHERE email = :email
              LIMIT 1'
@@ -36,7 +36,7 @@ final class PortfolioRepository
             return null;
         }
 
-        $hash = (string)$row['password_hash'];
+        $hash = (string) $row['password_hash'];
         $ok = false;
 
         // If bcrypt-like hash, verify properly; otherwise allow plain-text for dev.
@@ -53,6 +53,7 @@ final class PortfolioRepository
         return [
             'userId' => $row['id'],
             'profileId' => $row['profile_id'],
+            'name' => $row['name'] ?? null,
             'email' => $row['email'],
             'role' => $row['role'],
         ];
@@ -120,7 +121,7 @@ final class PortfolioRepository
                 'repositoryUrl' => $row['repository_url'],
                 'liveUrl' => $row['live_url'],
                 'imageUrl' => $row['image_url'],
-                'createdAt' => $row['created_at'] ? (string)$row['created_at'] : null,
+                'createdAt' => $row['created_at'] ? (string) $row['created_at'] : null,
             ];
         }
         return $out;
@@ -180,12 +181,90 @@ final class PortfolioRepository
                 'location' => $row['location'],
                 'startDate' => $row['start_date'],
                 'endDate' => $row['is_current'] ? 'Presente' : ($row['end_date'] ?? ''),
-                'current' => (bool)$row['is_current'],
+                'current' => (bool) $row['is_current'],
                 'description' => $row['description'],
                 'skills' => parsePgJsonArrayString($row['skills']),
             ];
         }
         return $out;
+    }
+    public function register(string $fullName, string $email, string $password): array
+    {
+        $fullName = trim($fullName);
+        $email = trim($email);
+
+        if ($fullName === '' || $email === '' || $password === '') {
+            throw new InvalidArgumentException('Missing data');
+        }
+
+        $stmt = db()->prepare('SELECT 1 FROM users WHERE email = :email LIMIT 1');
+        $stmt->execute([':email' => $email]);
+
+        if ($stmt->fetchColumn()) {
+            throw new RuntimeException('EMAIL_TAKEN');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('INVALID_EMAIL');
+        }
+
+        if (strlen($password) < 6) {
+            throw new InvalidArgumentException('PASSWORD_TOO_SHORT');
+        }
+
+        $pdo = db();
+        $pdo->beginTransaction();
+
+        try {
+            // Crear perfil 
+            $stmt = $pdo->prepare(
+                'INSERT INTO profiles (full_name, role, bio, avatar_url, status)
+             VALUES (:full_name, :role, :bio, :avatar_url, :status)
+             RETURNING id::text'
+            );
+
+            $stmt->execute([
+                ':full_name' => $fullName,
+                ':role' => 'USER',
+                ':bio' => '',
+                ':avatar_url' => '',
+                ':status' => 'ACTIVO',
+            ]);
+
+            $profileId = $stmt->fetchColumn();
+
+            $hash = password_hash($password, PASSWORD_BCRYPT);
+
+            // crear usuario
+            $stmt = $pdo->prepare(
+                'INSERT INTO users (email, password_hash, role, profile_id)
+             VALUES (:email, :password_hash, :role, :profile_id)
+             RETURNING id::text'
+            );
+
+            $stmt->execute([
+                ':email' => $email,
+                ':password_hash' => $hash,
+                ':role' => 'USER',
+                ':profile_id' => $profileId,
+            ]);
+
+            $userId = $stmt->fetchColumn();
+
+            $pdo->commit();
+
+            return [
+                'userId' => $userId,
+                'profileId' => $profileId,
+                'fullName' => $fullName,
+                'email' => $email,
+                'role' => 'USER',
+            ];
+
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 }
 

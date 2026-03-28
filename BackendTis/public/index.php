@@ -53,8 +53,8 @@ function requireAuth(): array
 // 1) Auth
 if ($method === 'POST' && $path === '/api/auth/login') {
     $body = readJsonBody();
-    $email = (string)($body['email'] ?? '');
-    $password = (string)($body['password'] ?? '');
+    $email = (string) ($body['email'] ?? '');
+    $password = (string) ($body['password'] ?? '');
 
     if ($email === '' || $password === '') {
         jsonResponse(['error' => 'Missing email or password'], 400);
@@ -93,11 +93,69 @@ if ($method === 'POST' && $path === '/api/auth/login') {
         'token' => $token,
         'user' => [
             'id' => $user['userId'],
+            'name' => $user['name'] ?? null,
             'email' => $user['email'],
             'role' => $user['role'],
             'profileId' => $user['profileId'],
         ],
     ]);
+    exit;
+}
+
+if ($method === 'POST' && $path === '/api/auth/register') {
+    $body = readJsonBody();
+
+    $fullName = (string) ($body['fullName'] ?? '');
+    $email = (string) ($body['email'] ?? '');
+    $password = (string) ($body['password'] ?? '');
+
+    if ($fullName === '' || $email === '' || $password === '') {
+        jsonResponse(['error' => 'Missing data'], 400);
+        exit;
+    }
+
+    try {
+        $user = $repo->register($fullName, $email, $password);
+
+        jsonResponse([
+            'message' => 'User created',
+            'user' => $user
+        ], 201);
+
+    } catch (InvalidArgumentException $e) {
+        if ($e->getMessage() === 'INVALID_EMAIL') {
+            jsonResponse(['error' => 'Invalid email'], 400);
+        } elseif ($e->getMessage() === 'PASSWORD_TOO_SHORT') {
+            jsonResponse(['error' => 'Password too short'], 400);
+        } else {
+            jsonResponse(['error' => 'Invalid data'], 400);
+        }
+
+    } catch (RuntimeException $e) {
+        if ($e->getMessage() === 'EMAIL_TAKEN') {
+            jsonResponse(['error' => 'Email already exists'], 409);
+        } else {
+            jsonResponse(['error' => 'Server error'], 500);
+        }
+    }
+
+    exit;
+}
+// para verificar en el registro que ya existe un usuario con el mismo email
+if ($method === 'GET' && $path === '/api/auth/check-email') {
+    $email = $_GET['email'] ?? '';
+
+    if ($email === '') {
+        jsonResponse(['error' => 'Missing email'], 400);
+        exit;
+    }
+
+    $stmt = db()->prepare('SELECT 1 FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute([':email' => $email]);
+
+    $exists = (bool) $stmt->fetchColumn();
+
+    jsonResponse(['exists' => $exists]);
     exit;
 }
 
@@ -114,8 +172,8 @@ if ($method === 'GET' && $path === '/api/auth/me') {
 
 // 2) Placeholder image endpoint (used by mock avatarUrl)
 if ($method === 'GET' && preg_match('#^/api/placeholder/(\\d+)/(\\d+)$#', $path, $m)) {
-    $w = (int)$m[1];
-    $h = (int)$m[2];
+    $w = (int) $m[1];
+    $h = (int) $m[2];
     if ($w <= 0 || $h <= 0 || $w > 2000 || $h > 2000) {
         jsonResponse(['error' => 'Invalid dimensions'], 400);
         exit;
@@ -144,7 +202,7 @@ if ($method === 'GET' && preg_match('#^/api/placeholder/(\\d+)/(\\d+)$#', $path,
         $bg2,
         $w,
         $h,
-        max(14, (int)min($w, $h) * 0.25),
+        max(14, (int) min($w, $h) * 0.25),
         $text
     );
 
@@ -155,7 +213,7 @@ if ($method === 'GET' && preg_match('#^/api/placeholder/(\\d+)/(\\d+)$#', $path,
 // 3) Protected endpoints
 if (str_starts_with($path, '/api/')) {
     $payload = requireAuth();
-    $profileId = (string)$payload['pid'];
+    $profileId = (string) $payload['pid'];
 
     if ($method === 'GET' && $path === '/api/profile') {
         $profile = $repo->getProfile($profileId);
