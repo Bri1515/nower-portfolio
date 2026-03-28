@@ -14,7 +14,7 @@ export const SkillsList: React.FC = () => {
     const [skills, setSkills] = useState<Skill[]>([]);
 
     useEffect(() => {
-        fetch('/api/skills', {
+        fetch('http://localhost:8000/api/skills', {
             credentials: 'include',
         })
             .then(async (res) => {

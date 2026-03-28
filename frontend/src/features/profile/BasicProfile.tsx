@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Camera, Sparkles } from 'lucide-react';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { useUser } from '@clerk/clerk-react';
+import { mockProfile } from '../../data/mockData';
 
 type ProfileDto = {
     id: string;
@@ -19,50 +21,16 @@ type ProfileDto = {
 // ==========================================
 
 export const BasicProfile: React.FC = () => {
-    const [profile, setProfile] = useState<ProfileDto | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const { user } = useUser();
+    
+    // Initialize with Clerk data if available, otherwise fallback to mock
+    const [profile] = useState<ProfileDto>({
+        ...mockProfile,
+        fullName: user?.fullName || mockProfile.fullName,
+        avatarUrl: user?.imageUrl || mockProfile.avatarUrl,
+        id: user?.id || mockProfile.id
+    } as ProfileDto);
 
-    useEffect(() => {
-        fetch('/api/profile', {
-            credentials: 'include',
-        })
-            .then(async (res) => {
-                if (res.status === 401) {
-                    window.location.href = '/login';
-                    return null;
-                }
-
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                    throw new Error(data?.error ?? 'Error cargando perfil');
-                }
-                return data as ProfileDto;
-            })
-            .then((data) => {
-                if (!data) return;
-                setProfile(data);
-            })
-            .catch((e) => {
-                setError(e instanceof Error ? e.message : 'Error cargando perfil');
-                setProfile(null);
-            });
-    }, []);
-
-    if (error) {
-        return (
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#17262C] shadow-sm border border-slate-200 dark:border-slate-800/60 p-6">
-                <p className="text-sm text-red-500">{error}</p>
-            </div>
-        );
-    }
-
-    if (!profile) {
-        return (
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#17262C] shadow-sm border border-slate-200 dark:border-slate-800/60 p-6">
-                <p className="text-sm text-slate-500 dark:text-slate-400">Cargando perfil...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#17262C] shadow-sm border border-slate-200 dark:border-slate-800/60">

@@ -3,6 +3,8 @@ import { X, Moon, Sun, LogOut, Globe } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Tab } from './Tab';
 import { Avatar } from '../ui/Avatar';
+import { useUser, useClerk } from '@clerk/clerk-react';
+import { mockProfile } from '../../data/mockData';
 
 // ==========================================
 // SIDEBAR
@@ -26,6 +28,12 @@ export interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isDark, toggleTheme, navItems, activeTab, setActiveTab }) => {
+    const { user } = useUser();
+    const { signOut } = useClerk();
+
+    const userName = user?.fullName || mockProfile.fullName;
+    const userImage = user?.imageUrl || mockProfile.avatarUrl;
+    const userRole = mockProfile.role; // Clerk doesn't provide a 'role' by default, keeping mock for now
     return (
         <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform flex-col bg-white dark:bg-[#17262C] border-r border-slate-200 dark:border-slate-800/60 transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex`}>
             <div className="flex h-20 items-center gap-3 px-6">
@@ -74,12 +82,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isDark, toggleTheme,
                 </div>
 
                 <button className="flex w-full items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-[#10221C] p-3 transition-colors hover:border-slate-300 dark:hover:border-slate-600">
-                    <Avatar name="Alex Developer" size="sm" className="border-2 border-emerald-500" />
+                    <Avatar src={userImage} name={userName} size="sm" className="border-2 border-emerald-500" />
                     <div className="flex flex-1 flex-col text-left">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white leading-none">Alex Dev</span>
-                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 uppercase">Manager</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white leading-none">{userName}</span>
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 uppercase">{userRole}</span>
                     </div>
-                    <LogOut className="h-4 w-4 text-slate-400" />
+                    <button 
+                        onClick={() => signOut()}
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        title="Cerrar Sesión"
+                    >
+                        <LogOut className="h-4 w-4 text-slate-400 hover:text-red-500 transition-colors" />
+                    </button>
                 </button>
             </div>
         </aside>

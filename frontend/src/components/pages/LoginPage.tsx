@@ -1,126 +1,60 @@
-import React, { useEffect, useState } from "react";
+// src/components/pages/LoginPage.tsx
+import React, { useState } from "react";
 import { Eye, EyeOff, Lock, Layers, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSignIn } from "@clerk/clerk-react";
 
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
-
-export interface LoginPageProps {
-  onLogin?: () => void;
-}
-
-export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
   const navigate = useNavigate();
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-  const verifyGoogleCredential = async (credential: string) => {
+  // Initialize Clerk's signIn object
+  const { signIn, isLoaded } = useSignIn();
+
+  // Handle Custom Email/Password Login via Clerk
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded) return;
     setError("");
-    setIsGoogleAuthLoading(true);
 
     try {
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ credential }),
+      const result = await signIn.create({
+        identifier: email,
+        password,
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.user) {
-        setError(data?.error ?? "Error en autenticación con Google.");
-        return;
+      if (result.status === "complete") {
+        navigate("/profile");
+      } else {
+        console.log(result);
+        setError("Se requiere un paso adicional para iniciar sesión.");
       }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Credenciales inválidas. Intente de nuevo.");
+    }
+  };
 
-      onLogin?.();
-    } catch {
-      setError("Error conectando con el servidor.");
-    } finally {
+  // Handle Custom Google Login via Clerk
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
+    setIsGoogleAuthLoading(true);
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/profile",
+      });
+    } catch (err) {
+      setError("Error en autenticación con Google.");
       setIsGoogleAuthLoading(false);
     }
   };
 
-  const handleGoogleCredentialResponse = async (response: { credential?: string }) => {
-    if (!response?.credential) {
-      setError("No se obtuvo credencial de Google.");
-      return;
-    }
-
-    await verifyGoogleCredential(response.credential);
-  };
-
-  const handleGoogleSignIn = () => {
-    if (!window.google?.accounts?.id) {
-      setError("La librería de Google no está disponible o no ha cargado.");
-      return;
-    }
-
-    window.google.accounts.id.prompt();
-  };
-
-  useEffect(() => {
-    if (!googleClientId) {
-      setError("VITE_GOOGLE_CLIENT_ID no está configurado en el entorno.");
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      if (!window.google?.accounts?.id) {
-        setError("No se pudo inicializar Google Identity Services.");
-        return;
-      }
-
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: handleGoogleCredentialResponse,
-      });
-    };
-
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [googleClientId]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || !data?.token) {
-        setError(data?.error ?? "Credenciales inválidas. Intente de nuevo.");
-        return;
-      }
-
-      onLogin?.();
-    } catch {
-      setError("Error conectando con el servidor.");
-    }
-  };
-
   return (
-    // FIX 1: Rigid h-screen and overflow-hidden ensures absolutely NO vertical scrolling
     <div className="h-screen w-full flex items-center justify-center bg-slate-100 dark:bg-[#0B1120] p-4 lg:p-10 font-sans overflow-hidden">
       {/* Main Split-Screen Container - Locked height constraints */}
       <div className="w-full h-full max-h-[850px] max-w-[1300px] flex flex-col lg:flex-row rounded-3xl overflow-hidden shadow-2xl shadow-black/10 dark:shadow-emerald-950/10 bg-white dark:bg-[#10221C] border border-slate-200 dark:border-slate-800/60">

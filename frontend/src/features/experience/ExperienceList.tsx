@@ -11,7 +11,7 @@ export const ExperienceList: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch('/api/experience', {
+        fetch('http://localhost:8000/api/experience', {
             credentials: 'include',
         })
             .then(async (res) => {

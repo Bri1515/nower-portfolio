@@ -11,6 +11,7 @@ require_once __DIR__ . '/../src/Http.php';
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/PortfolioRepository.php';
 
+corsHeaders();
 requireJson();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -99,6 +100,48 @@ if ($method === 'POST' && $path === '/api/auth/login') {
             'profileId' => $user['profileId'],
         ],
     ]);
+    exit;
+}
+
+if ($method === 'POST' && $path === '/api/auth/google') {
+    $body = readJsonBody();
+    $credential = (string)($body['credential'] ?? '');
+
+    if ($credential === '') {
+        jsonResponse(['error' => 'No se recibió el token de Google.'], 400);
+        exit;
+    }
+
+    try {
+        // En desarrollo local a veces es necesario deshabilitar la verificación SSL para Guzzle
+        $httpClient = new GuzzleHttp\Client(['verify' => false]);
+        $client = new Google_Client(['client_id' => env('GOOGLE_CLIENT_ID')]);
+        $client->setHttpClient($httpClient);
+
+        $payload = $client->verifyIdToken($credential);
+
+        if (!$payload) {
+            jsonResponse(['error' => 'Token de Google inválido.'], 401);
+            exit;
+        }
+
+        // Aquí deberías buscar al usuario por email de Google o crearlo.
+        // Por ahora simulamos una respuesta exitosa similar a google.php original.
+        jsonResponse([
+            'success' => true,
+            'message' => 'Login exitoso',
+            'user' => [
+                'id' => $payload['sub'],
+                'email' => $payload['email'],
+                'name' => $payload['name'],
+                'avatar' => $payload['picture'] ?? null,
+                'token' => 'mock_google_session_token' // En producción genera un JWT real aquí
+            ]
+        ]);
+
+    } catch (Exception $e) {
+        jsonResponse(['error' => 'Error autenticando con Google: ' . $e->getMessage()], 500);
+    }
     exit;
 }
 

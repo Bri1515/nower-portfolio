@@ -25,11 +25,9 @@ dist-ssr
 
 
 lint_output.txt
-<<<<<<< HEAD
 BackendTis/vendor
 BackendTis/.env.development
-=======
 
 *.env
 *.node_modules
->>>>>>> 36ca3f75042d096fda2469c0fed4e69cba3f7700
+BackendTis/.env

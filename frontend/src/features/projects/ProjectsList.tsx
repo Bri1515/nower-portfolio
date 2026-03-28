@@ -14,7 +14,7 @@ export const ProjectsList: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch('/api/projects', {
+        fetch('http://localhost:8000/api/projects', {
             credentials: 'include',
         })
             .then(async (res) => {
