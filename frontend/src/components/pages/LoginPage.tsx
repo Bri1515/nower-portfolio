@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff, Lock, Layers, ShieldCheck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSignIn } from "@clerk/clerk-react";
-const ALLOWED_DOMAIN = "@est.umss.edu";
+const ALLOWED_DOMAINS = ["@est.umss.edu", "@ms.umss.edu"];
 
 export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,6 +11,7 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
+  const [isMicrosoftAuthLoading, setIsMicrosoftAuthLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -19,7 +20,7 @@ export const LoginPage: React.FC = () => {
     const errorParam = searchParams.get("error") || searchParams.get("clerk_error");
     if (errorParam) {
       if (errorParam === "access_denied" || errorParam.includes("not_allowed")) {
-        setError("Acceso denegado: Solo se permiten cuentas institucionales @est.umss.edu");
+        setError(`Acceso denegado: Usa tu cuenta institucional (${ALLOWED_DOMAINS.join(" o ")})`);
       } else {
         setError("Error en el inicio de sesión. Por favor, intenta de nuevo.");
       }
@@ -39,8 +40,9 @@ export const LoginPage: React.FC = () => {
     setError("");
 
     try {
-      if (!email.toLowerCase().endsWith(ALLOWED_DOMAIN)) {
-        setError("Solo se permiten correos institucionales con el dominio @est.umss.edu");
+      const isDomainValid = ALLOWED_DOMAINS.some(domain => email.toLowerCase().endsWith(domain));
+      if (!isDomainValid) {
+        setError(`Solo se permiten correos institucionales (${ALLOWED_DOMAINS.join(" o ")})`);
         return;
       }
       const result = await signIn.create({
@@ -60,9 +62,9 @@ export const LoginPage: React.FC = () => {
       const errorMessage = firstError?.message || "";
 
       if (firstError?.code === "form_identifier_not_allowed" || errorMessage.includes("domain")) {
-        setError("Este dominio no está permitido. Usa tu cuenta @est.umss.edu");
+        setError(`Este dominio no está permitido. Usa tu cuenta institucional (${ALLOWED_DOMAINS.join(" o ")})`);
       } else if (errorMessage.toLowerCase().includes("strategy")) {
-        setError("Tu cuenta está vinculada a Google. Por favor, usa el botón de 'Google' para entrar.");
+        setError("Tu cuenta está vinculada a Google o Microsoft. Por favor, usa el botón correspondiente para entrar.");
       } else {
         setError(firstError?.message || "Credenciales inválidas. Intente de nuevo.");
       }
@@ -82,6 +84,22 @@ export const LoginPage: React.FC = () => {
     } catch (err) {
       setError("Error en autenticación con Google.");
       setIsGoogleAuthLoading(false);
+    }
+  };
+
+  // Handle Custom Microsoft Login via Clerk
+  const handleMicrosoftSignIn = async () => {
+    if (!isLoaded) return;
+    setIsMicrosoftAuthLoading(true);
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_microsoft",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/profile",
+      });
+    } catch (err) {
+      setError("Error en autenticación con Microsoft.");
+      setIsMicrosoftAuthLoading(false);
     }
   };
 
@@ -204,7 +222,7 @@ export const LoginPage: React.FC = () => {
                   required
                 />
                 <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 px-1 italic">
-                  * Debes usar tu correo universitario (@est.umss.edu)
+                  * Debes usar tu correo institucional (@est.umss.edu o @ms.umss.edu)
                 </p>
               </div>
 
@@ -278,7 +296,7 @@ export const LoginPage: React.FC = () => {
             </div>
 
             {/* SSO Buttons */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
@@ -293,18 +311,7 @@ export const LoginPage: React.FC = () => {
                 </svg>
                 {isGoogleAuthLoading ? "Iniciando con Google..." : "Google"}
               </button>
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#111827] py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 21 21">
-                  <path fill="#f25022" d="M1 1h9v9H1z" />
-                  <path fill="#00a4ef" d="M1 11h9v9H1z" />
-                  <path fill="#7fba00" d="M11 1h9v9h-9z" />
-                  <path fill="#ffb900" d="M11 11h9v9h-9z" />
-                </svg>
-                Microsoft
-              </button>
+
             </div>
           </div>
         </div>
